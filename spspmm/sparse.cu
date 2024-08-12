@@ -317,6 +317,8 @@ struct CusparseMatrixMultiplyOp {
         &bufferSize1,
         dBuffer1));
 
+    // Initialize before so it does not loose the scope
+    at::DataPtr dataPtr2, dataPtr3;
     if (alg_type == CUSPARSE_SPGEMM_DEFAULT) {
       TORCH_CUDASPARSE_CHECK(cusparseSpGEMM_compute(
           handle,
@@ -333,7 +335,7 @@ struct CusparseMatrixMultiplyOp {
           &bufferSize2,
           NULL));
 
-      at::DataPtr dataPtr2 = allocator.allocate(bufferSize2);
+      dataPtr2 = allocator.allocate(bufferSize2);
       dBuffer2 = dataPtr2.get();
 
       // compute the intermediate product of A * B
@@ -373,7 +375,7 @@ struct CusparseMatrixMultiplyOp {
           NULL,
           NULL));
 
-      at::DataPtr dataPtr3 = allocator.allocate(bufferSize3);
+      dataPtr3 = allocator.allocate(bufferSize3);
       dBuffer3 = dataPtr3.get();
 
       TORCH_CUDASPARSE_CHECK(cusparseSpGEMM_estimateMemory(
@@ -394,7 +396,7 @@ struct CusparseMatrixMultiplyOp {
           &bufferSize2));
 
       dataPtr3.clear();
-      at::DataPtr dataPtr2 = allocator.allocate(bufferSize2);
+      dataPtr2 = allocator.allocate(bufferSize2);
       dBuffer2 = dataPtr2.get();
 
       // ask bufferSize2 bytes for external memory

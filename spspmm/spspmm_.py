@@ -16,11 +16,7 @@ class _spspmm(Function):
     def forward(
             ctx, mat1, mat2, alg_type: str = 'alg3',
     ):
-        if not mat1.is_coalesced():
-            mat1 = mat1.coalesce()
-        if not mat2.is_coalesced():
-            mat2 = mat2.coalesce()
-        mat3 = _C.sparse_sparse_matmul_cuda(mat1, mat2, alg_type).coalesce()
+        mat3 = _C.sparse_sparse_matmul_cuda(mat1, mat2, alg_type)
         ctx.save_for_backward(mat1, mat2, mat3)
         ctx.alg_type = alg_type
         return mat3
@@ -42,9 +38,11 @@ def reshape_batch(sparse_tensor):
     ) <= 4, 'sparse_tensor ndim must be either 3 or 4'
     assert sparse_tensor.layout == torch.sparse_coo
 
+    sparse_tensor = sparse_tensor.coalesce()
+    # Dont use, _values(); does not have the gradients
     # Retrieve indices and values
-    indices = sparse_tensor._indices()
-    values = sparse_tensor._values()
+    indices = sparse_tensor.indices()
+    values = sparse_tensor.values()
 
     if len(sparse_tensor.shape) == 3:
         x1, x2, x3 = sparse_tensor.shape
@@ -88,9 +86,12 @@ def reshape_batch(sparse_tensor):
 def reverse_reshape_batch(reshaped_tensor, rev_shape):
     assert len(reshaped_tensor.shape) == 2, 'sparse_tensor ndim needs to be 2'
     assert 3 <= len(rev_shape) <= 4, 'sparse_tensor ndim must be either 3 or 4'
+
+    reshaped_tensor = reshaped_tensor.coalesce()
     # Extract the indices and values from the reshaped tensor
-    indices = reshaped_tensor._indices()
-    values = reshaped_tensor._values()
+    # Dont use, _values(); does not have the gradients
+    indices = reshaped_tensor.indices()
+    values = reshaped_tensor.values()
 
     # Calculate the original indices based on the reshaped indices
     row_indices = indices[0]
